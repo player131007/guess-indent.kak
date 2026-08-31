@@ -6,11 +6,16 @@ use bpaf::Parser;
 use guess_indent::{GuessIndent, Indentation};
 use itertools::{Either, Itertools};
 use std::{
-    fs::File,
-    io::{self, BufRead, BufReader, Write, stdin, stdout},
+    env::args_os, fs::File, io::{self, BufRead, BufReader, Write, stdin, stdout},
 };
 
 fn main() -> Result<()> {
+    // if invoked with no args, print out the kakrc
+    if args_os().len() == 1 {
+        print!("{}", include_str!("../../../rc/guess-indent.kak"));
+        return Ok(());
+    }
+
     let args = Args::parser().to_options().run();
 
     indent_to_kak(&guess_indent(&args)?, &mut stdout())
