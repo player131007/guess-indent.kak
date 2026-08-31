@@ -1,0 +1,30 @@
+[package]
+name = "guess-indent"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+bpaf = "0.9.27"
+itertools = "0.15.0"
+
+[[bin]]
+doc = false
+name = "kak-guess-indent"
+
+[lints.clippy]
+complexity = { level = "warn", priority = -1 }
+nursery    = { level = "warn", priority = -1 }
+pedantic   = { level = "warn", priority = -1 }
+perf       = { level = "warn", priority = -1 }
+style      = { level = "warn", priority = -1 }
+
+enum_glob_use = "deny"
+
+[profile.release]
+lto       = true
+opt-level = 3
+strip     = true
+
+[dev-dependencies]
+indoc = "2.0.7"
