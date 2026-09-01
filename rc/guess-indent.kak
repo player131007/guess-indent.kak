@@ -1,8 +1,8 @@
 declare-option -docstring "Valid space indentations to consider" \
 int-list guess_indent_standard_widths 2 4 8
 
-declare-option -docstring "Maximum number of lines to guess indentation (0 for infinite)" \
-int guess_indent_max_lines 0
+declare-option -docstring "Maximum number of lines to guess indentation (-1 for infinite)" \
+int guess_indent_max_lines -1
 
 define-command -params 1 -docstring %{
     guess-indent-from-file <filename>: guess the indentation from the contents of <file>
@@ -13,7 +13,7 @@ define-command -params 1 -docstring %{
         widths=${widths%,}
 
         max_lines=""
-        if [ "$kak_opt_guess_indent_max_lines" -gt 0 ]; then
+        if [ "$kak_opt_guess_indent_max_lines" -ge 0 ]; then
             max_lines="--max-lines=$kak_opt_guess_indent_max_lines"
         fi
 
