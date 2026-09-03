@@ -12,17 +12,22 @@ define-command -params 1 -docstring %{
         widths=$(printf "%s," $kak_opt_guess_indent_standard_widths)
         widths=${widths%,}
 
-        max_lines=""
-        if [ "$kak_opt_guess_indent_max_lines" -ge 0 ]; then
-            max_lines="--max-lines=$kak_opt_guess_indent_max_lines"
+        standard_widths=''
+        if [ -n "$widths" ]; then
+            standard_widths='--standard-widths="$widths"'
         fi
 
-        kak-guess-indent \
-            $max_lines \
-            --standard-widths="$widths" \
-            --block-comment-start="$kak_opt_comment_block_begin" \
-            --block-comment-end="$kak_opt_comment_block_end" \
-            "$1"
+        max_lines=''
+        if [ "$kak_opt_guess_indent_max_lines" -ge 0 ]; then
+            max_lines='--max-lines="$kak_opt_guess_indent_max_lines"'
+        fi
+
+        block_comments=''
+        if [ -n "$kak_opt_comment_block_begin" ] && [ -n "$kak_opt_comment_block_end" ]; then
+            block_comments='--block-comment-start="$kak_opt_comment_block_begin" --block-comment-end="$kak_opt_comment_block_end"'
+        fi
+
+        eval kak-guess-indent "$max_lines" "$standard_widths" "$block_comments" '"$1"'
     }
 }
 
