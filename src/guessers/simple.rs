@@ -30,21 +30,15 @@ impl Simple {
             })
             .fallback(Vec::new());
 
-        // if either argument is empty, consider it as having no comments
-        // this is because i'm too lazy to check if the variables are empty in kakoune
         let block_comment_start = long("block-comment-start")
             .help("String marking the start of a block comment")
-            .argument::<String>("STRING")
-            .map(|s| (!s.is_empty()).then_some(s));
+            .argument::<String>("STRING");
         let block_comment_end = long("block-comment-end")
             .help("String marking the end of a block comment")
-            .argument::<String>("STRING")
-            .map(|s| (!s.is_empty()).then_some(s));
+            .argument::<String>("STRING");
 
         let block_comment_delimiters = construct!(block_comment_start, block_comment_end)
-            .map(|(b, e)| b.zip(e))
-            .optional()
-            .map(Option::flatten);
+            .optional();
 
         construct!(Self {
             standard_widths,
