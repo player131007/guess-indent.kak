@@ -14,7 +14,7 @@ use std::{
 fn main() -> Result<()> {
     // if invoked with no args, print out the kakrc
     if args_os().len() == 1 {
-        print!("{}", include_str!("../../../rc/guess-indent.kak"));
+        println!("{}", include_str!("guess-indent.kak"));
         return Ok(());
     }
 
