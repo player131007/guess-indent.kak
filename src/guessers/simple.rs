@@ -1,5 +1,6 @@
 use crate::{GuessIndent, Indentation};
-use std::{cell::Cell, num::NonZeroUsize, str::FromStr};
+use either::Either::{Left, Right};
+use std::{cell::Cell, io, io::BufRead, num::NonZeroUsize, str::FromStr};
 
 /// A simple indentation detector.
 ///
@@ -37,8 +38,8 @@ impl Simple {
             .help("String marking the end of a block comment")
             .argument::<String>("STRING");
 
-        let block_comment_delimiters = construct!(block_comment_start, block_comment_end)
-            .optional();
+        let block_comment_delimiters =
+            construct!(block_comment_start, block_comment_end).optional();
 
         construct!(Self {
             standard_widths,
@@ -48,37 +49,42 @@ impl Simple {
 }
 
 impl GuessIndent for Simple {
-    fn guess_indent<'a>(&self, lines: impl IntoIterator<Item = impl AsRef<str>>) -> Indentation {
+    fn guess_indent(
+        &self,
+        contents: impl BufRead,
+        max_lines: Option<usize>,
+    ) -> io::Result<Indentation> {
         let state = self
             .block_comment_delimiters
             .as_ref()
             .map_or_else(Default::default, CommentState::with_delimiters);
+        let lines = match max_lines {
+            Some(n) => Left(contents.lines().take(n)),
+            None => Right(contents.lines()),
+        };
+
         for line in lines {
-            let line = line.as_ref();
+            let line = line?;
             if !state.in_comment.get() {
                 let leading_whitespace = line
                     .find(|c: char| !c.is_ascii_whitespace())
-                    .map_or(line, |idx| &line[..idx]);
-
+                    .map_or(line.as_str(), |idx| &line[..idx]);
                 match leading_whitespace {
-                    "\t" => {
-                        return Indentation::Tabs;
-                    }
+                    "\t" => return Ok(Indentation::Tabs),
                     s if !s.is_empty() && s.chars().all(|c| c == ' ') => {
                         // SAFETY: we made sure `s` is not empty in the match arm
                         // also `s.len()` is correct here because it only contains ascii characters
                         let len = unsafe { NonZeroUsize::new_unchecked(s.len()) };
                         if self.standard_widths.contains(&len) {
-                            return Indentation::Spaces(len);
+                            return Ok(Indentation::Spaces(len));
                         }
                     }
                     _ => {}
                 }
             }
-
-            state.advance_state(line);
+            state.advance_state(&line);
         }
-        Indentation::None
+        Ok(Indentation::None)
     }
 }
 
@@ -152,7 +158,12 @@ mod tests {
                     // ignored
             }
         "};
-        assert_eq!(guesser.guess_indent(contents.lines()), Indentation::Tabs);
+        assert_eq!(
+            guesser
+                .guess_indent(contents.as_bytes(), None)
+                .expect("Reading from a &str won't fail"),
+            Indentation::Tabs
+        );
     }
 
     #[test]
@@ -175,7 +186,9 @@ mod tests {
                 # why is there suddenly a line here
         "};
         assert_eq!(
-            guesser.guess_indent(contents.lines()),
+            guesser
+                .guess_indent(contents.as_bytes(), None)
+                .expect("Reading from a &str won't fail"),
             Indentation::Spaces(TWO)
         );
     }
@@ -192,6 +205,11 @@ mod tests {
             foo = 'bar'
             baz = 'qux'
         "};
-        assert_eq!(guesser.guess_indent(contents.lines()), Indentation::None);
+        assert_eq!(
+            guesser
+                .guess_indent(contents.as_bytes(), None)
+                .expect("Reading from a &str won't fail"),
+            Indentation::None
+        );
     }
 }

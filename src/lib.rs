@@ -1,6 +1,9 @@
 pub mod guessers;
 
-use std::num::NonZeroUsize;
+use std::{
+    io::{BufRead, Result},
+    num::NonZeroUsize,
+};
 
 /// The detected indentation of the given contents.
 #[derive(Debug, Eq, PartialEq)]
@@ -15,5 +18,5 @@ pub enum Indentation {
 
 pub trait GuessIndent {
     /// Guess the indentation used in the given contents
-    fn guess_indent(&self, lines: impl IntoIterator<Item = impl AsRef<str>>) -> Indentation;
+    fn guess_indent(&self, lines: impl BufRead, max_lines: Option<usize>) -> Result<Indentation>;
 }

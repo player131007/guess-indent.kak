@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.104"
 bpaf = "0.9.27"
-itertools = "0.15.0"
+either = "1.19.0"
 
 [[bin]]
 doc = false

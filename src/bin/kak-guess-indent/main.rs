@@ -3,10 +3,12 @@ mod args;
 use anyhow::{Context, Result};
 use args::{Args, Input};
 use bpaf::Parser;
+use either::Either::{Left, Right};
 use guess_indent::{GuessIndent, Indentation};
-use itertools::{Either, Itertools};
 use std::{
-    env::args_os, fs::File, io::{self, BufRead, BufReader, Write, stdin, stdout},
+    env::args_os,
+    fs::File,
+    io::{self, BufReader, Write, stdin, stdout},
 };
 
 fn main() -> Result<()> {
@@ -18,31 +20,21 @@ fn main() -> Result<()> {
 
     let args = Args::parser().to_options().run();
 
-    indent_to_kak(&guess_indent(&args)?, &mut stdout())
-        .with_context(|| "While sending commands to Kakoune")
+    indent_to_kak(&guess_indent(&args)?, &mut stdout()).context("While sending commands to Kakoune")
 }
 
 fn guess_indent(args: &Args) -> Result<Indentation> {
-    let lines = match args.input {
-        Input::Stdin => Either::Left(stdin().lines()),
-        Input::File(ref path) => Either::Right(
-            BufReader::new(
-                File::open(path)
-                    .with_context(|| format!("While opening file: {}", path.display()))?,
-            )
-            .lines(),
-        ),
+    let contents = match args.input {
+        Input::Stdin => Left(stdin().lock()),
+        Input::File(ref path) => {
+            Right(BufReader::new(File::open(path).with_context(|| {
+                format!("While opening file: {}", path.display())
+            })?))
+        }
     };
 
-    let lines = if let Some(count) = args.max_lines {
-        Either::Left(lines.take(count))
-    } else {
-        Either::Right(lines)
-    };
-
-    lines
-        .process_results(|l| args.guesser.guess_indent(l))
-        .with_context(|| "While reading input")
+    either::for_both!(contents, c => args.guesser.guess_indent(c, args.max_lines))
+        .context("While reading input")
 }
 
 fn indent_to_kak(indent: &Indentation, f: &mut impl Write) -> io::Result<()> {
